@@ -1,22 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:scholar/Pages/chat_page.dart';
 import 'package:scholar/Pages/sing_in_page.dart';
+import 'package:scholar/cubits/signin_cubit/signin_cubit.dart';
+import 'package:scholar/cubits/signup_cubit/signup_cubit.dart';
 
 import '../Widgets/custom_button.dart';
 import '../Widgets/custom_text_field.dart';
 import '../helper/const.dart';
 
-class SignUpPage extends StatefulWidget {
-  SignUpPage({super.key});
-  static const String id = "SignUp";
-
-  @override
-  State<SignUpPage> createState() => _SignUpPageState();
-}
-
-class _SignUpPageState extends State<SignUpPage> {
+class SignUpPage extends StatelessWidget {
+  static const id = "Signup";
   String? email;
 
   String? pass;
@@ -27,138 +23,110 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ModalProgressHUD(
-      inAsyncCall: show,
-      child: Scaffold(
-        backgroundColor: KprimaryColor,
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Form(
-            key: formkey,
-            child: ListView(
-              children: [
-                const SizedBox(height: 100),
-                Image.asset(
-                  KphotoPath,
-                  height: 100,
-                ),
-                const Center(
-                  child: Text(
-                    "Scholar Chat",
-                    style: TextStyle(
-                        fontFamily: "Pacifico",
-                        fontSize: 25,
-                        color: Colors.white),
+    return BlocListener<SignupCubit, SignupState>(
+      listener: (context, state) {
+        if (state is SignupFailed) {
+          show = false;
+          showSnackBar(context, exception: state.exception);
+        } else if (state is SignupSuccess) {
+          show = false;
+          Navigator.pushNamed(context, ChatPage.id, arguments: email);
+          showSnackBar(context, text: "Account created successfully");
+        } else if (state is SignupLoading) {
+          show = true;
+        }
+      },
+      child: ModalProgressHUD(
+        inAsyncCall: show,
+        child: Scaffold(
+          backgroundColor: KprimaryColor,
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: Form(
+              key: formkey,
+              child: ListView(
+                children: [
+                  const SizedBox(height: 100),
+                  Image.asset(
+                    KphotoPath,
+                    height: 100,
                   ),
-                ),
-                const SizedBox(height: 79),
-                Row(
-                  children: const [
-                    Text(
-                      "Sign Up ",
+                  const Center(
+                    child: Text(
+                      "Scholar Chat",
                       style: TextStyle(
-                          fontSize: 24,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),
+                          fontFamily: "Pacifico",
+                          fontSize: 25,
+                          color: Colors.white),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                CustomFormTextField(
-                    label: "Email",
+                  ),
+                  const SizedBox(height: 79),
+                  Row(
+                    children: const [
+                      Text(
+                        "Sign Up ",
+                        style: TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  CustomFormTextField(
+                      label: "Email",
+                      fontcolor: Colors.white,
+                      onchange: (data) {
+                        email = data;
+                      }),
+                  const SizedBox(height: 15),
+                  CustomFormTextField(
+                    obscuretext: true,
+                    action: TextInputAction.send,
+                    label: "password",
                     fontcolor: Colors.white,
                     onchange: (data) {
-                      email = data;
-                    }),
-                const SizedBox(height: 15),
-                CustomFormTextField(
-                  obscuretext: true,
-                  action: TextInputAction.send,
-                  label: "password",
-                  fontcolor: Colors.white,
-                  onchange: (data) {
-                    pass = data;
-                  },
-                  onsubmit: (data) async {
-                    if (formkey.currentState!.validate()) {
-                      try {
-                        show = true;
-                        setState(() {});
-                        await signUp();
-                        showSnackBar(context,
-                            text: "Account created successfully");
-                        await signIn(email!, pass!);
-                        showSnackBar(context, text: "Logged in");
-                        Navigator.pushNamed(context, ChatPage.id);
-                        show = false;
-                        setState(() {});
-                      } on FirebaseAuthException catch (e) {
-                        show = false;
-                        setState(() {});
-
-                        showSnackBar(context,
-                            exception: e, text: "there is an error");
-                      } catch (e) {
-                        show = false;
-                        setState(() {});
-
-                        showSnackBar(context, text: "there is an error");
+                      pass = data;
+                    },
+                    onsubmit: (data) async {
+                      if (formkey.currentState!.validate()) {
+                        BlocProvider.of<SignupCubit>(context)
+                            .signUp(email: email!, pass: pass!);
                       }
-                    }
-                  },
-                ),
-                const SizedBox(height: 25),
-                CustomButton(
-                  text: "Sign Up",
-                  ontap: () async {
-                    if (formkey.currentState!.validate()) {
-                      try {
-                        show = true;
-                        setState(() {});
-                        await signUp();
-                        showSnackBar(context,
-                            text: "Account created successfully");
-                        await signIn(email!, pass!);
-                        showSnackBar(context, text: "Logged in");
-                        show = false;
-                        setState(() {});
-                        Navigator.pushNamed(context, SignInPage.id);
-                      } on FirebaseAuthException catch (e) {
-                        show = false;
-                        setState(() {});
-
-                        showSnackBar(context,
-                            exception: e, text: "there is an error");
-                      } catch (e) {
-                        show = false;
-                        setState(() {});
-
-                        showSnackBar(context, text: "there is an error");
+                    },
+                  ),
+                  const SizedBox(height: 25),
+                  CustomButton(
+                    text: "Sign Up",
+                    ontap: () async {
+                      if (formkey.currentState!.validate()) {
+                        BlocProvider.of<SignupCubit>(context)
+                            .signUp(email: email!, pass: pass!);
                       }
-                    }
-                  },
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'have an account?',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        " Log in",
-                        style:
-                            TextStyle(color: Color(0xffC7EDE6), fontSize: 19),
+                    },
+                  ),
+                  const SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'have an account?',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
                       ),
-                    )
-                  ],
-                )
-              ],
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          " Log in",
+                          style:
+                              TextStyle(color: Color(0xffC7EDE6), fontSize: 19),
+                        ),
+                      )
+                    ],
+                  )
+                ],
+              ),
             ),
           ),
         ),
@@ -181,10 +149,5 @@ class _SignUpPageState extends State<SignUpPage> {
         SnackBar(content: Text(text!)),
       );
     }
-  }
-
-  Future<void> signUp() async {
-    UserCredential uc = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email!, password: pass!);
   }
 }

@@ -71,7 +71,7 @@ class bubbleChatUserII extends StatelessWidget {
         ),
         padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
-            color: Colors.black,
+            color: Colors.blueGrey,
             borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(40),
                 topRight: Radius.circular(40),
